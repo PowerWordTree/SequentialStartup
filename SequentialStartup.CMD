@@ -40,7 +40,7 @@ CALL :ECHO "==========  执行结束 " " =========="
 GOTO :EOF
 
 
-::检查网址
+::检查网址(使用curl.exe)
 ::  参数1: 网址
 :CHECK_URL
 FOR /F "tokens=*" %%I IN ('curl -I -m 10 -o NUL -s -w %%{http_code} "%~1"') DO (
