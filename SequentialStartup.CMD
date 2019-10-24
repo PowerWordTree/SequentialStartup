@@ -1,6 +1,6 @@
 ::顺序启动脚本
 ::@author FB
-::@version 1.00
+::@version 1.01
 
 @ECHO OFF
 SETLOCAL ENABLEDELAYEDEXPANSION
@@ -32,6 +32,9 @@ FOR /F "eol=# tokens=1,* delims== usebackq" %%I IN ("%CFGFILE%") DO (
   IF /I "!VARNAME!" == "SLEEP" (
     CALL :ECHO "##" "等待时间: !VARDATA!"
     CALL :SLEEP !VARDATA!
+  )
+  IF /I "!VARNAME!" == "ECHO" (
+    ECHO.!VARDATA!
   )
 )
 
