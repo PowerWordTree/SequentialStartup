@@ -25,6 +25,12 @@ FOR /F "eol=# tokens=1,* delims== usebackq" %%I IN ("%CFGFILE%") DO (
     START "!VARDATA!" /D "!RUN_PATH!" !VARDATA!
     SET "RUN_PATH="
   )
+  IF /I "!VARNAME!" == "RUNWAIT" (
+    CALL :ECHO "##" "ÔËÐÐµÈ´ý: !VARDATA!"
+    CALL :GET_PATH "RUN_PATH" "!VARDATA!"
+    START /WAIT "!VARDATA!" /D "!RUN_PATH!" !VARDATA!
+    SET "RUN_PATH="
+  )
   IF /I "!VARNAME!" == "URL" (
     CALL :ECHO "##" "¼ì²âÍøÖ·: !VARDATA!"
     CALL :CHECK_URL "!VARDATA!"
