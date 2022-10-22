@@ -5,6 +5,7 @@
 @ECHO OFF
 SETLOCAL ENABLEDELAYEDEXPANSION
 CD /D "%~dp0"
+SET "PATH=%CD%\bin;%CD%\script;%PATH%"
 
 ::处理命令行参数
 ::  参数1: 配置文件
