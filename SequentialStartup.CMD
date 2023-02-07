@@ -1,6 +1,6 @@
 ::顺序启动脚本
 ::@author FB
-::@version 1.01
+::@version 1.02
 
 @ECHO OFF
 SETLOCAL ENABLEDELAYEDEXPANSION
@@ -16,29 +16,35 @@ IF EXIST "%~1" (
 )
 
 ::开始执行
-CALL :ECHO "==========  开始执行 " " =========="
-FOR /F "eol=# tokens=1,* delims== usebackq" %%I IN ("%CFGFILE%") DO (
-  CALL :TRIM "VARNAME" "%%I"
-  CALL :TRIM "VARDATA" "%%J"
+ECHO ==========  开始执行 !DATE! !TIME! ==========
+FOR /F "eol=# tokens=1,* usebackq delims==" %%I IN ("%CFGFILE%") DO (
+  CALL Common.CMD TRIM %%I
+  SET "VARNAME=!$!"
+  CALL Common.CMD TRIM %%J
+  SET  "VARDATA=!$!"
   IF /I "!VARNAME!" == "RUN" (
-    CALL :ECHO "##" "运行命令: !VARDATA!"
-    CALL :GET_PATH "RUN_PATH" "!VARDATA!"
-    START "!VARDATA!" /D "!RUN_PATH!" !VARDATA!
-    SET "RUN_PATH="
+    ECHO ## !DATE! !TIME! 运行: !VARDATA!
+    CALL :RUN !VARDATA!
   )
   IF /I "!VARNAME!" == "RUNWAIT" (
-    CALL :ECHO "##" "运行等待: !VARDATA!"
-    CALL :GET_PATH "RUN_PATH" "!VARDATA!"
-    START /WAIT "!VARDATA!" /D "!RUN_PATH!" !VARDATA!
-    SET "RUN_PATH="
+    ECHO ## !DATE! !TIME! 运行并等待: !VARDATA!
+    CALL :RUNWAIT !VARDATA!
   )
   IF /I "!VARNAME!" == "URL" (
-    CALL :ECHO "##" "检测网址: !VARDATA!"
-    CALL :CHECK_URL "!VARDATA!"
+    ECHO ## !DATE! !TIME! 等待网址: !VARDATA!
+    CALL :URL "!VARDATA!"
+  )
+  IF /I "!VARNAME!" == "PORT" (
+    ECHO ## !DATE! !TIME! 等待端口: !VARDATA!
+    FOR /F "tokens=1,* delims=:" %%A IN ("!VARDATA!") DO CALL :PORT "%%A" "%%B"
+  )
+  IF /I "!VARNAME!" == "ZOOKEEPER" (
+    ECHO ## !DATE! !TIME! 等待Zookeeper: !VARDATA!
+    FOR /F "tokens=1,* delims=:" %%A IN ("!VARDATA!") DO CALL :ZOOKEEPER "%%A" "%%B"
   )
   IF /I "!VARNAME!" == "SLEEP" (
-    CALL :ECHO "##" "等待时间: !VARDATA!"
-    CALL :SLEEP !VARDATA!
+    ECHO ## !DATE! !TIME! 等待: !VARDATA!秒
+    CALL Common.CMD SLEEP !VARDATA!
   )
   IF /I "!VARNAME!" == "ECHO" (
     ECHO.!VARDATA!
@@ -46,58 +52,51 @@ FOR /F "eol=# tokens=1,* delims== usebackq" %%I IN ("%CFGFILE%") DO (
 )
 
 ::执行结束
-CALL :ECHO "==========  执行结束 " " =========="
+ECHO ==========  执行结束 !DATE! !TIME! ==========
 GOTO :EOF
 
+::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
-::检查网址
+::执行命令
+::  参数1: 命令
+:RUNWAIT
+CALL Common.CMD GET_PATH "%~1"
+START "!VARDATA!" /WAIT /D "!$!" %*
+GOTO :EOF
+
+::执行命令并等待
+::  参数1: 命令
+:RUN
+CALL Common.CMD GET_PATH "%~1"
+START "!VARDATA!" /D "!$!" %*
+GOTO :EOF
+
+::等待网址
 ::  参数1: 网址
-:CHECK_URL
+:URL
 FOR /F "tokens=*" %%I IN ('curl -I -m 10 -o NUL -s -w %%{http_code} "%~1"') DO (
   IF NOT "%%I" == "200" IF NOT "%%I" == "302" (
-	CALL :SLEEP 3
-    GOTO :CHECK_URL
+	CALL Common.CMD SLEEP 3
+    GOTO :URL
   )
 )
 GOTO :EOF
 
-::延迟
-::  参数1: 时间(秒)
-:SLEEP
-IF "%~1" == "" GOTO :EOF
-CHOICE /T "%~1" /D "Y" 1>NUL 2>NUL 
-SET "SLEEPPARAM="
-GOTO :EOF
+::等待端口
+::  参数1: 地址
+::  参数2: 端口
+:PORT
+nc.exe -z "%~1" "%~2" 1>NUL 2>&1
+IF "%ERRORLEVEL%" == "0" GOTO :EOF
+CHOICE /T 3 /D Y 1>NUL 2>&1
+GOTO :PORT
 
-::包含时间的输出
-::  参数1: 前缀文字
-::  参数2: 后缀文字
-:ECHO
-@ECHO %~1 %DATE% %TIME% %~2
-GOTO :EOF
+::等待Zookeeper
+::  参数1: 地址
+::  参数2: 端口
+:ZOOKEEPER
+ECHO stat | nc.exe "%~1" "%~2" | find /I "Zookeeper" 1>NUL 2>&1
+IF "%ERRORLEVEL%" == "0" GOTO :EOF
+CHOICE /T 3 /D Y 1>NUL 2>&1
+GOTO :ZOOKEEPER
 
-::去空格
-::  参数1: 输出到变量名
-::  参数2: 目标字符串
-:TRIM
-SET "TRIMSTR=%~2"
-:TRIMLEFT
-IF "%TRIMSTR:~0,1%" == " " (
-  SET "TRIMSTR=%TRIMSTR:~1%"
-  GOTO :TRIMLEFT
-)
-:TRIMRIGHT
-IF "%TRIMSTR:~-1%" == " " (
-  SET "TRIMSTR=%TRIMSTR:~0,-1%"
-  GOTO :TRIMLEFT
-)
-SET "%~1=%TRIMSTR%"
-SET "TRIMSTR="
-GOTO :EOF
-
-::截取文件路径
-::  参数1: 保存到变量名
-::  参数2: 完整文件路径
-:GET_PATH
-SET "%~1=%~dp2"
-GOTO :EOF

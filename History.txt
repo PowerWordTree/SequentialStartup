@@ -2,3 +2,6 @@
   支持RUN、URL、SLEEP三种配置文件项。
 1.01:
   添加ECHO、RUNWAIT配置文件项。
+1.02:
+  添加PORT、ZOOKEEPER配置文件项。
+  
